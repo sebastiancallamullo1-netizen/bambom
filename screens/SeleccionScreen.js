@@ -1,15 +1,48 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, Text, View, TouchableOpacity, TextInput } from 'react-native';
 import { useGame } from '../juegocontext';
 
+// Pantalla de inicio: elegir modo de juego, nombres, dificultad y acceder a
+// perfil, estadísticas, historial y al visor de la base de datos.
 export default function SeleccionScreen({ navigation }) {
-  const { nombreJ1, modoJuego, setModoJuego, dificultadCPU, setDificultadCPU, setNombreJ2 } = useGame();
+  const {
+    nombreJ1,
+    nombreJ2,
+    modoJuego,
+    setModoJuego,
+    dificultadCPU,
+    setDificultadCPU,
+    setNombreJ2,
+  } = useGame();
 
+  // Cambia el modo de juego y ajusta el nombre del rival según el modo.
   function elegirModo(nuevoModo) {
     setModoJuego(nuevoModo);
-    setNombreJ2(nuevoModo === 'cpu' ? 'CPU' : 'Sebastian');
+
+    if (nuevoModo === 'cpu') {
+      setNombreJ2('CPU');
+    } else {
+      setNombreJ2('Sebastian');
+    }
   }
 
   const esCPU = modoJuego === 'cpu';
+
+  // Valida los nombres antes de empezar: no pueden estar vacíos ni repetirse,
+  // porque las estadísticas se guardan separadas por nombre.
+  function comenzar() {
+    if (!esCPU) {
+      const nombre1 = nombreJ1.trim().toLowerCase();
+      const nombre2 = nombreJ2.trim().toLowerCase();
+
+      if (nombre2 === '') {
+        setNombreJ2('Jugador 2');
+      } else if (nombre1 === nombre2) {
+        Alert.alert('Nombres repetidos', 'Los dos jugadores tienen que tener nombres distintos.');
+        return;
+      }
+    }
+    navigation.navigate('Colocacion');
+  }
 
   return (
     <View style={styles.container}>
@@ -30,7 +63,19 @@ export default function SeleccionScreen({ navigation }) {
           <View style={styles.avatarJ2}>
             <Text style={styles.avatarTextoJ2}>{esCPU ? 'CPU' : 'J2'}</Text>
           </View>
-          <Text style={styles.nombreJ2}>{esCPU ? 'CPU' : 'Sebastian'}</Text>
+          {esCPU ? (
+            <Text style={styles.nombreJ2}>CPU</Text>
+          ) : (
+            <TextInput
+              style={[
+                styles.nombreJ2,
+                { borderBottomWidth: 1, borderBottomColor: '#FF6B35', minWidth: 80, textAlign: 'center' },
+              ]}
+              value={nombreJ2}
+              onChangeText={setNombreJ2}
+              maxLength={12}
+            />
+          )}
         </View>
       </View>
 
@@ -83,10 +128,7 @@ export default function SeleccionScreen({ navigation }) {
         </View>
       )}
 
-      <TouchableOpacity
-        style={styles.botonComenzar}
-        onPress={() => navigation.navigate('Colocacion')}
-      >
+      <TouchableOpacity style={styles.botonComenzar} onPress={comenzar}>
         <Text style={styles.textoComenzar}>Comenzar partida</Text>
       </TouchableOpacity>
 
@@ -99,6 +141,9 @@ export default function SeleccionScreen({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity style={styles.botonAtajo} onPress={() => navigation.navigate('Historial')}>
           <Text style={styles.textoAtajo}>Historial</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.botonAtajo} onPress={() => navigation.navigate('BaseDatos')}>
+          <Text style={styles.textoAtajo}>Base de datos</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -278,6 +323,8 @@ const styles = StyleSheet.create({
   },
   filaAtajos: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 10,
     marginTop: 28,
   },

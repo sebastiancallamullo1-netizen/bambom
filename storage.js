@@ -70,36 +70,7 @@ export async function guardarPerfil(perfil) {
   }
 }
 
-export async function cargarStats() {
-  try {
-    const db = await abrirBase();
-    const totales = await db.getFirstAsync(
-      'SELECT COUNT(*) AS total, COALESCE(SUM(gano), 0) AS victorias FROM partidas'
-    );
-    const resultados = await db.getAllAsync('SELECT gano FROM partidas ORDER BY id ASC');
 
-    let racha = 0;
-    let mejorRacha = 0;
-    for (const fila of resultados) {
-      if (fila.gano === 1) {
-        racha += 1;
-        mejorRacha = Math.max(mejorRacha, racha);
-      } else {
-        racha = 0;
-      }
-    }
-
-    return {
-      victorias: totales.victorias,
-      derrotas: totales.total - totales.victorias,
-      racha,
-      mejorRacha,
-    };
-  } catch (e) {
-    avisarError('cargarStats', e);
-    return STATS_INICIALES;
-  }
-}
 
 export async function cargarHistorial() {
   try {
@@ -177,5 +148,73 @@ export async function borrarDatos() {
     await db.runAsync('DELETE FROM partidas');
   } catch (e) {
     avisarError('borrarDatos', e);
+  }
+}
+
+export async function verDatosGuardados() {
+  try {
+    const db = await abrirBase();
+
+    const perfil = await db.getAllAsync(
+      'SELECT * FROM perfil'
+    );
+
+    const partidas = await db.getAllAsync(
+      'SELECT * FROM partidas ORDER BY id DESC'
+    );
+
+    const patrones = await db.getAllAsync(
+      'SELECT * FROM patrones ORDER BY casilla'
+    );
+
+    console.log('PERFIL:', perfil);
+    console.log('PARTIDAS:', partidas);
+    console.log('PATRONES:', patrones);
+  } catch (e) {
+    console.error('Error al consultar la base de datos:', e);
+  }
+}
+
+
+export async function cargarStats(nombreJugador) {
+  try {
+    const db = await abrirBase();
+
+    const partidas = await db.getAllAsync(
+      `SELECT gano
+       FROM partidas
+       WHERE jugador = ?
+       ORDER BY id ASC`,
+      [nombreJugador]
+    );
+
+    let victorias = 0;
+    let derrotas = 0;
+    let racha = 0;
+    let mejorRacha = 0;
+
+    for (let i = 0; i < partidas.length; i++) {
+      if (partidas[i].gano === 1) {
+        victorias++;
+        racha++;
+
+        if (racha > mejorRacha) {
+          mejorRacha = racha;
+        }
+      } else {
+        derrotas++;
+        racha = 0;
+      }
+    }
+
+    return {
+      victorias: victorias,
+      derrotas: derrotas,
+      racha: racha,
+      mejorRacha: mejorRacha
+    };
+  } catch (e) {
+    avisarError('Cargar estadísticas', e);
+    return { ...STATS_INICIALES };
   }
 }

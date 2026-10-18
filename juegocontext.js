@@ -1,119 +1,67 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { cargarPerfil, guardarPerfil, registrarPartida, registrarBombas, cargarPatrones } from './storage';
+            import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { 
+  cargarPerfil, 
+  guardarPerfil, 
+  registrarPartida, 
+  registrarBombas, 
+  cargarPatrones,
+  cargarStats 
+} from './storage';
 
-const GameContext = createContext(null);
-
-const crearTableroVacio = () =>
-  Array(9).fill(null).map(() => ({ bomba: false, revelada: false }));
-
-function elegirPorPatrones(disponibles, patrones) {
-  const minimo = Math.min(...disponibles.map((i) => patrones[i]));
-  const menosUsadas = disponibles.filter((i) => patrones[i] === minimo);
-  return menosUsadas[Math.floor(Math.random() * menosUsadas.length)];
-}
-
-function obtenerAdyacentes(indice) {
-  const fila = Math.floor(indice / 3);
-  const col = indice % 3;
-  const adyacentes = [];
-  for (const [df, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-    const f = fila + df;
-    const c = col + dc;
-    if (f >= 0 && f < 3 && c >= 0 && c < 3) adyacentes.push(f * 3 + c);
-  }
-  return adyacentes;
-}
+const GameContext = createContext();
 
 export function GameProvider({ children }) {
   const [nombreJ1, setNombreJ1] = useState('Jugador 1');
-  const [nombreJ2, setNombreJ2] = useState('Sebas');
-
-  const [tableroJ1, setTableroJ1] = useState(crearTableroVacio());
-  const [tableroJ2, setTableroJ2] = useState(crearTableroVacio());
-
+  const [nombreJ2, setNombreJ2] = useState('Jugador 2');
+  const [tableroJ1, setTableroJ1] = useState([]);
+  const [tableroJ2, setTableroJ2] = useState([]);
   const [vidasJ1, setVidasJ1] = useState(3);
   const [vidasJ2, setVidasJ2] = useState(3);
-
-  const [turno, setTurno] = useState(() => (Math.random() < 0.5 ? 'J1' : 'J2'));
+  const [turno, setTurno] = useState('J1');
   const [ganador, setGanador] = useState(null);
+  const [modoJuego, setModoJuego] = useState('cpu');
+  const [dificultadCPU, setDificultadCPU] = useState('medio');
 
-  const [modoJuego, setModoJuego] = useState('2jugadores');
-  const [dificultadCPU, setDificultadCPU] = useState('facil');
+  const patronesRef = useRef([]);
   const impactosCPU = useRef([]);
-  const partidaGuardada = useRef(false);
-  const patronesRef = useRef(Array(9).fill(0));
 
   useEffect(() => {
-    cargarPerfil().then((perfil) => {
-      if (perfil && perfil.nombre) setNombreJ1(perfil.nombre);
-    });
-    cargarPatrones().then((patrones) => {
-      patronesRef.current = patrones;
+    cargarPatrones().then((p) => {
+      patronesRef.current = p;
     });
   }, []);
 
   useEffect(() => {
-    if (!ganador || partidaGuardada.current) return;
-    partidaGuardada.current = true;
-    const bombasJ1 = tableroJ1.map((c, i) => (c.bomba ? i : -1)).filter((i) => i >= 0);
-    (async () => {
-      await registrarPartida({
-        fecha: new Date().toISOString(),
-        modo: modoJuego,
-        dificultad: modoJuego === 'cpu' ? dificultadCPU : null,
-        jugador: nombreJ1,
-        rival: nombreJ2,
-        gano: ganador === 'J1',
-        vidasRestantes: ganador === 'J1' ? vidasJ1 : vidasJ2,
-      });
-      await registrarBombas(bombasJ1);
-      patronesRef.current = await cargarPatrones();
-    })();
-  }, [ganador]);
+    cargarPerfil().then((perfil) => {
+      if (perfil && perfil.nombre) {
+        setNombreJ1(perfil.nombre);
+      }
+    });
+  }, []);
 
-  function guardarNombre(nombre) {
-    setNombreJ1(nombre);
-    guardarPerfil({ nombre });
+  function guardarNombre(nuevoNombre) {
+    if (nuevoNombre) {
+      setNombreJ1(nuevoNombre);
+      guardarPerfil({ nombre: nuevoNombre });
+    } else {
+      guardarPerfil({ nombre: nombreJ1 });
+    }
   }
 
   function reiniciarJuego() {
-    setTableroJ1(crearTableroVacio());
-    setTableroJ2(crearTableroVacio());
+    setTableroJ1([]);
+    setTableroJ2([]);
     setVidasJ1(3);
     setVidasJ2(3);
-    setTurno(Math.random() < 0.5 ? 'J1' : 'J2');
+    setTurno('J1');
     setGanador(null);
     impactosCPU.current = [];
-    partidaGuardada.current = false;
   }
 
-  function alternarBomba(jugador, indice) {
-    const tablero = jugador === 'J1' ? tableroJ1 : tableroJ2;
-    const setTablero = jugador === 'J1' ? setTableroJ1 : setTableroJ2;
-
-    const bombasColocadas = tablero.filter((c) => c.bomba).length;
-    const casilla = tablero[indice];
-
-    if (!casilla.bomba && bombasColocadas >= 3) return;
-
-    const nuevoTablero = tablero.map((c, i) =>
-      i === indice ? { ...c, bomba: !c.bomba } : c
-    );
-    setTablero(nuevoTablero);
+  function alternarBomba(indice, esJ1) {
   }
 
-  function colocarBombasAleatorias(jugador) {
-    const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
-    }
-    const elegidos = indices.slice(0, 3);
-    const nuevoTablero = crearTableroVacio().map((c, i) =>
-      elegidos.includes(i) ? { ...c, bomba: true } : c
-    );
-    if (jugador === 'J1') setTableroJ1(nuevoTablero);
-    else setTableroJ2(nuevoTablero);
+  function colocarBombasAleatorias(cantidad, esJ1) {
   }
 
   function atacarCasilla(indice) {
@@ -181,6 +129,33 @@ export function GameProvider({ children }) {
     atacarCasilla(indice);
   }
 
+  function obtenerAdyacentes(indice) {
+    const adyacentes = {
+      0: [1, 3],
+      1: [0, 2, 4],
+      2: [1, 5],
+      3: [0, 4, 6],
+      4: [1, 3, 5, 7],
+      5: [2, 4, 8],
+      6: [3, 7],
+      7: [4, 6, 8],
+      8: [5, 7],
+    };
+    return adyacentes[indice] || [];
+  }
+
+  function elegirPorPatrones(disponibles, patrones) {
+    let mejor = disponibles[0];
+    let max = -1;
+    for (const i of disponibles) {
+      if (patrones[i] > max) {
+        max = patrones[i];
+        mejor = i;
+      }
+    }
+    return mejor;
+  }
+
   const valor = {
     nombreJ1, nombreJ2, setNombreJ1, setNombreJ2, guardarNombre,
     tableroJ1, tableroJ2,
@@ -192,7 +167,11 @@ export function GameProvider({ children }) {
     colocarBombasAleatorias, jugarTurnoCPU,
   };
 
-  return <GameContext.Provider value={valor}>{children}</GameContext.Provider>;
+  return (
+    <GameContext.Provider value={valor}>
+      {children}
+    </GameContext.Provider>
+  );
 }
 
 export function useGame() {

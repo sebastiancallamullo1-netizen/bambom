@@ -1,19 +1,36 @@
-import { useState } from 'react';
+import { verDatosGuardados } from '../storage';
+import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useGame } from '../juegocontext';
 import { colors } from '../theme';
 
 export default function PerfilScreen({ navigation }) {
-  const { nombreJ1, guardarNombre } = useGame();
+  const { nombreJ1, nombreJ2, guardarNombre, setNombreJ2 } = useGame();
+  const [jugador, setJugador] = useState('J1');
   const [nombre, setNombre] = useState(nombreJ1);
+
+  useEffect(() => {
+    if (jugador === 'J1') {
+      setNombre(nombreJ1);
+    } else {
+      setNombre(nombreJ2);
+    }
+  }, [jugador, nombreJ1, nombreJ2]);
 
   function guardar() {
     const limpio = nombre.trim();
+
     if (limpio.length === 0) {
       Alert.alert('Falta el nombre', 'Escribí un nombre para tu perfil.');
       return;
     }
-    guardarNombre(limpio);
+
+    if (jugador === 'J1') {
+      guardarNombre(limpio);
+    } else {
+      setNombreJ2(limpio);
+    }
+
     navigation.goBack();
   }
 
@@ -23,27 +40,50 @@ export default function PerfilScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.titulo}>PERFIL DE JUGADOR</Text>
 
+      <View style={styles.fila}>
+        <TouchableOpacity
+          style={[styles.botonJugador, jugador === 'J1' && styles.activo]}
+          onPress={() => setJugador('J1')}
+        >
+          <Text style={styles.textoBoton}>Jugador 1</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.botonJugador, jugador === 'J2' && styles.activo]}
+          onPress={() => setJugador('J2')}
+        >
+          <Text style={styles.textoBoton}>Jugador 2</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.avatar}>
         <Text style={styles.avatarTexto}>{inicial}</Text>
       </View>
 
-      <Text style={styles.etiqueta}>Tu nombre</Text>
+      <Text style={styles.etiqueta}>Nombre del {jugador === 'J1' ? 'jugador 1' : 'jugador 2'}</Text>
+
       <TextInput
         style={styles.input}
         value={nombre}
         onChangeText={setNombre}
-        placeholder="Escribí tu nombre"
+        placeholder="Escribí un nombre"
         placeholderTextColor={colors.textoSuave}
         maxLength={12}
       />
-      <Text style={styles.ayuda}>Hasta 12 caracteres. Se guarda en el celular.</Text>
+
+      <Text style={styles.ayuda}>
+        Hasta 12 caracteres.
+      </Text>
 
       <TouchableOpacity style={styles.botonPrimario} onPress={guardar}>
         <Text style={styles.textoPrimario}>Guardar</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.botonSecundario} onPress={() => navigation.goBack()}>
-        <Text style={styles.textoSecundario}>Omitir</Text>
+      <TouchableOpacity
+        style={styles.botonSecundario}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.textoSecundario}>Volver</Text>
       </TouchableOpacity>
     </View>
   );
@@ -123,4 +163,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+    fila: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 25,
+  },
+  botonJugador: {
+    backgroundColor: colors.tarjeta,
+    borderWidth: 1,
+    borderColor: colors.borde,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  activo: {
+    backgroundColor: colors.primario,
+    borderColor: colors.primario,
+  },
 });
+
+<TouchableOpacity 
+  onPress={verDatosGuardados}
+  style={{ backgroundColor: '#333', padding: 12, borderRadius: 8, marginTop: 20 }}
+>
+  <Text style={{ color: 'white', textAlign: 'center' }}>Ver datos de la base</Text>
+</TouchableOpacity>

@@ -25,7 +25,55 @@ export default function ColocacionScreen({ navigation }) {
       navigation.replace('Tablero');
     }
   }
+function crearTableroVacio() {
+  return Array(9).fill(null).map(() => ({
+    bomba: false,
+    revelada: false,
+  }));
+}
 
+function alternarBomba(jugador, indice) {
+  const esJ1 = jugador === 'J1';
+  const tablero = esJ1 ? tableroJ1 : tableroJ2;
+  const setTablero = esJ1 ? setTableroJ1 : setTableroJ2;
+
+  let tableroActual = tablero.length === 0 ? crearTableroVacio() : [...tablero];
+
+  const bombasActuales = tableroActual.filter((c) => c.bomba).length;
+  const casilla = tableroActual[indice];
+
+  if (casilla.bomba) {
+    tableroActual[indice] = { ...casilla, bomba: false };
+    setTablero(tableroActual);
+    return;
+  }
+
+  if (bombasActuales >= 3) return;
+
+  tableroActual[indice] = { ...casilla, bomba: true };
+  setTablero(tableroActual);
+}
+
+function colocarBombasAleatorias(jugador) {
+  const esJ1 = jugador === 'J1';
+  const setTablero = esJ1 ? setTableroJ1 : setTableroJ2;
+
+  const nuevoTablero = crearTableroVacio();
+  const posiciones = [];
+
+  while (posiciones.length < 3) {
+    const random = Math.floor(Math.random() * 9);
+    if (!posiciones.includes(random)) {
+      posiciones.push(random);
+    }
+  }
+
+  posiciones.forEach((pos) => {
+    nuevoTablero[pos].bomba = true;
+  });
+
+  setTablero(nuevoTablero);
+}
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>{nombre} — Colocá 3 bombas</Text>

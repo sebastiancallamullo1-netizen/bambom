@@ -21,9 +21,20 @@ function textoModo(partida) {
 export default function HistorialScreen({ navigation }) {
   const [partidas, setPartidas] = useState([]);
 
-  useEffect(() => {
+useEffect(() => {
+  const actualizarHistorial = () => {
     cargarHistorial().then(setPartidas);
-  }, []);
+  };
+
+  actualizarHistorial();
+
+  const suscripcion = navigation.addListener(
+    'focus',
+    actualizarHistorial
+  );
+
+  return suscripcion;
+}, [navigation]);
 
   function renderPartida({ item }) {
     const color = item.gano ? colors.exito : colors.peligro;
