@@ -4,7 +4,8 @@ import { useGame } from '../juegocontext';
 
 export default function ColocacionScreen({ navigation }) {
   const { nombreJ1, nombreJ2, tableroJ1, tableroJ2, alternarBomba, modoJuego, colocarBombasAleatorias } = useGame();
-  const [jugadorActual, setJugadorActual] = useState('J1');
+  const [jugadorActual, setJugadorActual] = useState('J1')
+  ;
 
   const esJ1 = jugadorActual === 'J1';
   const tablero = esJ1 ? tableroJ1 : tableroJ2;
